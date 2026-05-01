@@ -2,24 +2,10 @@
 #include <stdlib.h>
 #include <time.h>
 #include <math.h>
+#include "process.h"
 
 int CPU_BOUND_FACTOR = 6;
 int IO_BOUND_FACTOR = 8;
-
-enum boundBy {
-	CPU_BOUND, IO_BOUND
-};
-
-typedef struct {
-	char* processID;
-	enum boundBy processBound;
-	short burstNum;
-	int interarivalTime;
-
-	int* cpuIOTimes;
-
-} simProcess;
-
 
 char** generateNames(int amount) {
 	char** returnCharArray = calloc(amount, sizeof(char*));
@@ -36,7 +22,6 @@ char** generateNames(int amount) {
 	
 	return returnCharArray;
 }
-
 
 double next_exp(double lamb, int upperLimit) {
 	double finalVal = upperLimit+1;
@@ -72,14 +57,29 @@ int main (int argc, char ** argv) {
 	int randomSeed = atoi(*(argv+3));
 	double lambdaValue = atof(*(argv+4));
 	int ifTimeItTakesIsLongerThanThisSkip = atoi(*(argv+5));
+	int contextSwitchTime = atoi(*(argv+6));
+	double alphaValue = atof(*(argv+7));
+	int roundRobinTimeSlice = atoi(*(argv+8));
 
 	if (ifTimeItTakesIsLongerThanThisSkip < 0) {
 		fprintf(stderr, "Your max value is negative?! What you trying to do start world war 3 or something!?\n");
 		return EXIT_FAILURE;
 	}
 
+	if (contextSwitchTime % 2 != 0 || contextSwitchTime < 0) {
+		fprintf(stderr, "ERROR: Context switch time invalid\n"); return EXIT_FAILURE;
+	}
+
+	if (roundRobinTimeSlice < 0) {
+		fprintf(stderr, "ERROR: Time Slice value negative\n"); return EXIT_FAILURE;
+	}
+
 	printf("<<< -- process set (n=%d) with %d CPU-bound process%s\n", amountOfProcessToSim, numOfCPUBoundProcess, numOfCPUBoundProcess > 1 ? "es" : "");
 	printf("<<< -- seed=%d; lambda=%.6f; upper bound=%d\n", randomSeed, lambdaValue, ifTimeItTakesIsLongerThanThisSkip);
+	if(alphaValue == -1)
+		printf("<<< -- t-cs=%dms; alpha=<n/a>; t_slice=%dms\n", contextSwitchTime, roundRobinTimeSlice);
+	else
+		printf("<<< -- t-cs=%dms; alpha=%.2f; t_slice=%dms\n", contextSwitchTime, alphaValue, roundRobinTimeSlice);
 	
 	srand48(randomSeed);
 
@@ -91,7 +91,7 @@ int main (int argc, char ** argv) {
 
 	for (int i = 0; i < amountOfProcessToSim; i++) {
 
-		printf("\n");
+		// printf("\n");
 
 		int initialTime = floor(next_exp(lambdaValue, ifTimeItTakesIsLongerThanThisSkip));
 
@@ -135,7 +135,7 @@ int main (int argc, char ** argv) {
 			*((processToSimArray+i)->cpuIOTimes+2*j+1) = ioBurstTime;
 
 
-			printf("==> CPU burst %dms ==> I/O burst %dms\n", cpuBurstTime, ioBurstTime);
+			// printf("==> CPU burst %dms ==> I/O burst %dms\n", cpuBurstTime, ioBurstTime);
 		}
 
 		int lastCPUBurst = ceil(next_exp(lambdaValue, ifTimeItTakesIsLongerThanThisSkip));
@@ -146,7 +146,7 @@ int main (int argc, char ** argv) {
 		*((processToSimArray+i)->cpuIOTimes+2*(burstAmount-1)) = lastCPUBurst;
 		
 
-		printf("==> CPU burst %dms\n", lastCPUBurst);
+		// printf("==> CPU burst %dms\n", lastCPUBurst);
 	}
 	
 
