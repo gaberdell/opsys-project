@@ -3,6 +3,7 @@
 #include <time.h>
 #include <math.h>
 #include "process.h"
+#include "fcfs.h"
 
 int CPU_BOUND_FACTOR = 6;
 int IO_BOUND_FACTOR = 8;
@@ -44,6 +45,12 @@ void initialSetUpForSimArray(simProcess* simArray, char** idList, int simSize, i
 	}
 }
 
+void resetSimArray(simProcess* simArray, int simSize) {
+	for(int i=0; i<simSize; i++) {
+		(simArray+i)->processStatus = WAITING;
+	} clearQueue();
+}
+
 int main (int argc, char ** argv) {
 
 	int amountOfProcessToSim = atoi(*(argv+1));
@@ -77,9 +84,9 @@ int main (int argc, char ** argv) {
 	printf("<<< -- process set (n=%d) with %d CPU-bound process%s\n", amountOfProcessToSim, numOfCPUBoundProcess, numOfCPUBoundProcess > 1 ? "es" : "");
 	printf("<<< -- seed=%d; lambda=%.6f; upper bound=%d\n", randomSeed, lambdaValue, ifTimeItTakesIsLongerThanThisSkip);
 	if(alphaValue == -1)
-		printf("<<< -- t-cs=%dms; alpha=<n/a>; t_slice=%dms\n", contextSwitchTime, roundRobinTimeSlice);
+		printf("<<< -- t_cs=%dms; alpha=<n/a>; t_slice=%dms\n", contextSwitchTime, roundRobinTimeSlice);
 	else
-		printf("<<< -- t-cs=%dms; alpha=%.2f; t_slice=%dms\n", contextSwitchTime, alphaValue, roundRobinTimeSlice);
+		printf("<<< -- t_cs=%dms; alpha=%.2f; t_slice=%dms\n\n", contextSwitchTime, alphaValue, roundRobinTimeSlice);
 	
 	srand48(randomSeed);
 
@@ -94,6 +101,8 @@ int main (int argc, char ** argv) {
 		// printf("\n");
 
 		int initialTime = floor(next_exp(lambdaValue, ifTimeItTakesIsLongerThanThisSkip));
+
+		(processToSimArray+i)->interarivalTime = initialTime;
 
 		int burstAmount = ceil(drand48() * 16);
 
@@ -149,6 +158,22 @@ int main (int argc, char ** argv) {
 		// printf("==> CPU burst %dms\n", lastCPUBurst);
 	}
 	
+	printf("\n<<< PROJECT SIMULATIONS\n");
+	printf("\ntime 0ms: Simulator started for FCFS [Q: -]\n");
+	simulate(processToSimArray, amountOfProcessToSim, contextSwitchTime);
+	resetSimArray(processToSimArray, amountOfProcessToSim);
+	printf("time _ms: Simulator ended for FCFS [Q: -]\n");
+	printf("\ntime 0ms: Simulator started for SJF-OPT [Q: -]\n");
+	simulate(processToSimArray, amountOfProcessToSim, contextSwitchTime);
+	resetSimArray(processToSimArray, amountOfProcessToSim);
+	printf("time _ms: Simulator ended for SJF-OPT [Q: -]\n");
+	printf("\ntime 0ms: Simulator started for SRT-OPT [Q: -]\n");
+	simulate(processToSimArray, amountOfProcessToSim, contextSwitchTime);
+	resetSimArray(processToSimArray, amountOfProcessToSim);
+	printf("time _ms: Simulator ended for SRT-OPT [Q: -]\n");
+	printf("\ntime 0ms: Simulator started for RR [Q: -]\n");
+	simulate(processToSimArray, amountOfProcessToSim, contextSwitchTime);
+	printf("time _____ms: Simulator ended for RR [Q: -]\n");
 
 	for (int i = 0; i < amountOfProcessToSim; i++) {
 		free(*(listOfNames+i));
